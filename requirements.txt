@@ -7,3 +7,5 @@ flask-sqlalchemy
 sqlalchemy-utils
 pandas
 psycopg2-binary
+scipy
+# personicle_schema @ git+https://github.com/ClearsenseData/personicle-schema-validation.git
