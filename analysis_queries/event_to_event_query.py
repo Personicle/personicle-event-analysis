@@ -198,12 +198,11 @@ def e2e_scatterplot(time_interval, antecedent, antecedent_parameter, consequent,
     scatterplot_data.rename(
         columns={0: 'user_id', 1: 'correlation_result'}, inplace=True)
 
-    # Assigning analysis id by activity type
-    scatterplot_data['analysis_id'] = scatterplot_insights['antecedent_name'].map(
-        activity_analysisid)   # Will be automated based on the analysis
-    scatterplot_data['timestampadded'] = strftime(
+    # Will be automated based on the analysis
+    scatterplot_data['unique_analysis_id'] = "temp"
+    scatterplot_data['timestamp_added'] = strftime(
         "%Y-%m-%d %H:%M:%S", gmtime())
-    scatterplot_data['view'] = 'No'
+    scatterplot_data['viewed'] = False
 
     # this data can be added to the analysis results table
     return scatterplot_data

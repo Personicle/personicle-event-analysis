@@ -1,7 +1,9 @@
 from sqlalchemy import BigInteger, Column, Enum, Float, TIMESTAMP
-from sqlalchemy.types import Integer, Numeric, String
+from sqlalchemy.types import Integer, Numeric, String, Boolean
 from sqlalchemy.dialects.postgresql import JSON, UUID
 from sqlalchemy_utils import CompositeType
+
+from datetime import datetime
 import uuid
 
 ANALYSIS_TABLE_SCHEMA = {
@@ -33,4 +35,12 @@ ANALYSIS_TABLE_SCHEMA = {
     "consequent_type": Column(String),
     "consequent_interval": Column(String),
     "consequent_interval": Column(String)
+}
+
+ANALYSIS_RESULT_SCHEMA = {
+    "user_id": Column(String),
+    "correlation_result": Column(JSON),
+    "unique_analysis_id": Column(UUID(as_uuid=False), primary_key=True),
+    "timestamp_added": Column(TIMESTAMP, default=datetime.utcnow()),
+    "viewed": Column(Boolean, default=False)
 }
