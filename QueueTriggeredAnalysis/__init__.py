@@ -40,6 +40,13 @@ Sample queue item:
 "consequent_interval": "DAILY"}
 """
 
+INTERVAL_MULTIPLIER = {
+    'minutes': 60,
+    'hours': 60*60,
+    "days": 24*60*60,
+    'weeks': 7*824*60*60
+}
+
 
 def main(msg: func.QueueMessage) -> None:
     logging.info('Python queue trigger function processed a queue item: %s',
@@ -94,11 +101,16 @@ def main(msg: func.QueueMessage) -> None:
         antecedent_interval['last_time'].iloc[0], consequent_interval['last_time'].iloc[0])
 
     logging.info(f"Analysis duration from {start_analysis} to {end_analysis}")
+    # find matching interval
+    matching_interval_begin = None if analysis_request['query_interval'][0] is None else analysis_request['query_interval'][0] * \
+        INTERVAL_MULTIPLIER[analysis_request['query_interval'][2]]
+    matching_interval_end = None if analysis_request['query_interval'][1] is None else analysis_request['query_interval'][1] * \
+        INTERVAL_MULTIPLIER[analysis_request['query_interval'][2]]
 
     if analysis_request['antecedent_type'] == "EVENT" and analysis_request['consequent_type'] == "EVENT":
         logging.info("run e2e query")
-        df = e2e_scatterplot(24, analysis_request['antecedent_name'], analysis_request['antecedent_parameter'], analysis_request['consequent_name'],
-                             analysis_request['consequent_parameter'], analysis_request['user_id'])
+        df = e2e_scatterplot(matching_interval_begin, matching_interval_end, analysis_request['antecedent_name'], analysis_request['antecedent_parameter'], analysis_request['consequent_name'],
+                             analysis_request['consequent_parameter'], analysis_request['user_id'], anchor=analysis_request['anchor'], aggregation_function=analysis_request['aggregate_function'])
         # print(df['correlation_result'].iloc[0])
         if df is None or df.shape[0] == 0:
             logging.info("No results found for query id {}".format(
