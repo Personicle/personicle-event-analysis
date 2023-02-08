@@ -7,13 +7,13 @@ if __name__ == "__main__":
 
     # results = get_analysis_requests()
     # print(results[0])
-    df = e2e_scatterplot(0, 24*60*60, "Biking", "duration", "Sleep",
-                         "duration", "00u50rvywd8mGuJw75d7")
+    df = e2e_scatterplot(0, 24*60*60, "Strength training", "duration", "Sleep",
+                         "duration", "00u50rvywd8mGuJw75d7", anchor="CONSEQUENT", aggregation_function="MEAN")
     print(df)
     if df is not None and df.shape[0] > 0:
         print(df['correlation_result'].iloc[0])
         write_analysis_results("00u50rvywd8mGuJw75d7",
-                               df['correlation_result'].iloc[0], "07ef535d-da14-4a93-87d1-82f82b2e3909")
+                               df['correlation_result'].iloc[0], "805a4bfb-300d-4e57-bd6f-2243fd1de971")
     else:
         print("Empty result")
 
@@ -24,3 +24,5 @@ if __name__ == "__main__":
 # "110651d0-6910-4439-8cce-0dbaef449534"	"00u50rvywd8mGuJw75d7"	"ANTECEDENT"	"Mindfulness"	"test"	"duration"	"Evening Run"	"test"	"duration"	"SUM"	"EVENT"	"EVENT"			"(4,26,minutes)"
 # "cd6a4d56-470c-4c5f-829a-954a40f74f37"	"00u50rvywd8mGuJw75d7"	"CONSEQUENT"	"Evening Run"	"test"	"duration"	"Strength training"	"test"	"duration"	"SUM"	"EVENT"	"EVENT"			"(22,,minutes)"
 # "07ef535d-da14-4a93-87d1-82f82b2e3909"	"00u50rvywd8mGuJw75d7"	"CONSEQUENT"	"Biking"	"test"	"duration"	"Sleep"	"test"	"duration"	"SUM"	"EVENT"	"EVENT"			"(0,24,hours)"
+# "8f205470-6c10-47a0-b033-ddd6430c7df0"	"00u50rvywd8mGuJw75d7"	"ANTECEDENT"	"Sleep"	"test"	"duration"	"Running"	"test"	"duration"	"SUM"	"EVENT"	"EVENT"			"(0,18,hours)"
+# "805a4bfb-300d-4e57-bd6f-2243fd1de971"	"00u50rvywd8mGuJw75d7"	"CONSEQUENT"	"Strength training"	"test"	"duration"	"Sleep"	"test"	"duration"	"SUM"	"EVENT"	"EVENT"			"(0,24,hours)"

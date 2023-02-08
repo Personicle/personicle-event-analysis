@@ -4,6 +4,7 @@ import pandas as pd
 from sqlalchemy import select
 import pandas.io.sql as sqlio
 import json
+import logging
 
 import sqlite3 as sq3
 from sqlite3 import InterfaceError
@@ -13,12 +14,14 @@ from .personicle_functions import *
 from .utility_functions_sleepanalysis import *
 from datetime import datetime, timedelta
 
+# logger = logging.getLogger(__main__):
 
-def e2e_scatterplot(time_interval_begin, time_interval_end, antecedent, antecedent_parameter, consequent, consequent_parameter, user_id):
+
+def e2e_scatterplot(time_interval_begin, time_interval_end, antecedent, antecedent_parameter, consequent, consequent_parameter, user_id, anchor="CONSEQUENT", aggregation_function="SUM"):
     # Query to fetch the event data
     print("Running analysis for {}:{} [{},{}] {}:{}".format(antecedent,
           antecedent_parameter, time_interval_begin, time_interval_end, consequent, consequent_parameter))
-    query_events = query_events = "select * from  personal_events where user_id='{}'".format(
+    query_events = "select * from  personal_events where user_id='{}'".format(
         user_id)
     events_stream = sqlio.read_sql_query(query_events, engine)
 
@@ -50,14 +53,14 @@ def e2e_scatterplot(time_interval_begin, time_interval_end, antecedent, antecede
         return None
 
     # es2=events_stream[(events_stream.event_name.isin(['Sleep']))&(events_stream.duration<=15)] #sleep
-    if time_interval_begin and time_interval_end:
+    if time_interval_begin is not None and time_interval_end is not None:
         es1['interval_start'] = es1['start_time'] + \
             timedelta(seconds=time_interval_begin)
-        es1['interval_end'] = es1['start_time'] + \
+        es1['interval_end'] = es1['end_time'] + \
             timedelta(seconds=time_interval_end)
     else:
         es1['interval_start'] = es1['start_time']
-        es1['interval_end'] = es1['start_time']
+        es1['interval_end'] = es1['end_time']
 
     try:
         es1['parameter2'] = es1['parameter2'].apply(lambda x: json.dumps(x))
@@ -127,7 +130,7 @@ def e2e_scatterplot(time_interval_begin, time_interval_end, antecedent, antecede
 
 
         """
-
+    logging.info("query = {}".format(qry))
     sleep_event_matched_data = pd.read_sql_query(qry, conn)
 
     # Missing value imputation of event data
@@ -154,33 +157,61 @@ def e2e_scatterplot(time_interval_begin, time_interval_end, antecedent, antecede
     sleep_event_matched_data = sleep_event_matched_data[(
         sleep_event_matched_data.antecedent_name != 0)].copy()
 
-    print("matched data")
+    logging.info("matched data")
     print(sleep_event_matched_data)
+    # Return none if no data is matched
     if sleep_event_matched_data is None or sleep_event_matched_data.shape[0] == 0:
         return None
 
-    pivot_sleep = sleep_event_matched_data.pivot_table(index=['user_id', 'consequent_metric'], columns=[
-        'antecedent_name'], values=['antecedent_metric'], aggfunc=np.sum).fillna(0).reset_index()
+    # Use the provided aggregation function
+    if aggregation_function == "SUM":
+        agg_func = np.sum
+    else:
+        agg_func = np.mean
 
-    # COlumn name modification
+    # Use the provided anchor
+    if anchor == "CONSEQUENT":
+        pivot_sleep = sleep_event_matched_data.pivot_table(index=['user_id', 'consequent_metric'], columns=[
+            'antecedent_name'], values=['antecedent_metric'], aggfunc=np.sum).fillna(0).reset_index()
+        # COlumn name modification
+        new_cols = [('{1} {0}'.format(*tup)) for tup in pivot_sleep.columns]
 
-    new_cols = [('{1} {0}'.format(*tup)) for tup in pivot_sleep.columns]
+        # assign it to the dataframe (assuming you named it pivoted
+        pivot_sleep.columns = new_cols
 
-    # assign it to the dataframe (assuming you named it pivoted
-    pivot_sleep.columns = new_cols
+        pivot_sleep.columns = pivot_sleep.columns.str.strip()
 
-    pivot_sleep.columns = pivot_sleep.columns.str.strip()
+        pivot_sleep.columns = pivot_sleep.columns. str. replace(
+            ' ', '').str. replace('antecedent_metric', '')
 
-    pivot_sleep.columns = pivot_sleep.columns. str. replace(
-        ' ', '').str. replace('antecedent_metric', '')
+        pivot_sleep.columns = map(str.lower, pivot_sleep.columns)
 
-    pivot_sleep.columns = map(str.lower, pivot_sleep.columns)
+        pivot_sleep = pd.melt(pivot_sleep, id_vars=[
+            'user_id', 'consequent_metric']).copy()
 
-    pivot_sleep = pd.melt(pivot_sleep, id_vars=[
-                          'user_id', 'consequent_metric']).copy()
+        pivot_sleep.rename(
+            columns={'variable': 'antecedent_name', 'value': 'antecedent_metric'}, inplace=True)
+    else:
+        pivot_sleep = sleep_event_matched_data.pivot_table(index=['user_id', 'antecedent_metric'], columns=[
+            'consequent_name'], values=['consequent_metric'], aggfunc=np.sum).fillna(0).reset_index()
+        # COlumn name modification
+        new_cols = [('{1} {0}'.format(*tup)) for tup in pivot_sleep.columns]
 
-    pivot_sleep.rename(
-        columns={'variable': 'antecedent_name', 'value': 'antecedent_metric'}, inplace=True)
+        # assign it to the dataframe (assuming you named it pivoted
+        pivot_sleep.columns = new_cols
+
+        pivot_sleep.columns = pivot_sleep.columns.str.strip()
+
+        pivot_sleep.columns = pivot_sleep.columns. str. replace(
+            ' ', '').str. replace('consequent_metric', '')
+
+        pivot_sleep.columns = map(str.lower, pivot_sleep.columns)
+
+        pivot_sleep = pd.melt(pivot_sleep, id_vars=[
+            'user_id', 'antecedent_metric']).copy()
+
+        pivot_sleep.rename(
+            columns={'variable': 'consequent_name', 'value': 'consequent_metric'}, inplace=True)
 
     print("pivoted data")
     print(pivot_sleep)
@@ -198,8 +229,8 @@ def e2e_scatterplot(time_interval_begin, time_interval_end, antecedent, antecede
             # print(row)
             l.append([row['antecedent_metric'], row['consequent_metric']])
 
-        dic[user_id] = {'XAxis': {'Measure': scatterplot_insights.antecedent_name.unique()[0], 'unit': "Minute"}, 'YAxis': {
-            'Measure': "Sleep",
+        dic[user_id] = {'XAxis': {'Measure': antecedent, 'unit': "Minute"}, 'YAxis': {
+            'Measure': consequent,  # "Sleep",
             'unit': "hours"
         }, 'data': l}
 
@@ -214,5 +245,4 @@ def e2e_scatterplot(time_interval_begin, time_interval_end, antecedent, antecede
     scatterplot_data['viewed'] = False
 
     # this data can be added to the analysis results table
-
     return scatterplot_data
