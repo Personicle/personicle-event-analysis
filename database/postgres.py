@@ -18,7 +18,7 @@ engine = create_engine("postgresql://{username}:{password}@{dbhost}/{dbname}".fo
                        pool_pre_ping=True)
 
 
-Base = declarative_base(engine)
+Base = declarative_base()
 
 TABLE_MODELS = {}
 
