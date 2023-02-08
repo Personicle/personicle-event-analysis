@@ -7,6 +7,8 @@ import azure.functions as func
 
 from database.postgres import engine
 from utils.schema_info import get_datastream_schema
+from database.write_analysis_to_db import write_analysis_results
+from analysis_queries.event_to_event_query import e2e_scatterplot
 
 """
 Function for processing the analysis requests;
@@ -93,6 +95,18 @@ def main(msg: func.QueueMessage) -> None:
 
     logging.info(f"Analysis duration from {start_analysis} to {end_analysis}")
 
-    while True:
-        break
+    if analysis_request['antecedent_type'] == "EVENT" and analysis_request['consequent_type'] == "EVENT":
+        logging.info("run e2e query")
+        df = e2e_scatterplot(24, analysis_request['antecedent_name'], analysis_request['antecedent_parameter'], analysis_request['consequent_name'],
+                             analysis_request['consequent_parameter'], analysis_request['user_id'])
+        # print(df['correlation_result'].iloc[0])
+        if df is None or df.shape[0] == 0:
+            logging.info("No results found for query id {}".format(
+                analysis_request['unique_analysis_id']))
+        else:
+            write_analysis_results(analysis_request['user_id'],
+                                   df['correlation_result'].iloc[0], analysis_request['unique_analysis_id'])
+    else:
+        while True:
+            break
     return

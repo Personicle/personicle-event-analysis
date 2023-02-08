@@ -1,7 +1,6 @@
 import numpy as np
 import pandas as pd
-# from base_schema import *
-# from db_connection import *
+
 from sqlalchemy import select
 import pandas.io.sql as sqlio
 import json
@@ -13,11 +12,12 @@ from database.postgres import engine
 from .personicle_functions import *
 from .utility_functions_sleepanalysis import *
 from datetime import datetime, timedelta
-import datetime
 
 
-def e2e_scatterplot(time_interval, antecedent, antecedent_parameter, consequent, consequent_parameter, user_id):
+def e2e_scatterplot(time_interval_begin, time_interval_end, antecedent, antecedent_parameter, consequent, consequent_parameter, user_id):
     # Query to fetch the event data
+    print("Running analysis for {}:{} [{},{}] {}:{}".format(antecedent,
+          antecedent_parameter, time_interval_begin, time_interval_end, consequent, consequent_parameter))
     query_events = query_events = "select * from  personal_events where user_id='{}'".format(
         user_id)
     events_stream = sqlio.read_sql_query(query_events, engine)
@@ -44,13 +44,20 @@ def e2e_scatterplot(time_interval, antecedent, antecedent_parameter, consequent,
     es2['metric'] = es2['parameter2'].apply(
         lambda x: json.loads(x).get(consequent_parameter))
     print(f"{consequent} Stream")
-    print(es2["event_name"])
+    print(es2[["event_name", "metric"]])
+
+    if es1 is None or es1.shape[0] == 0 or es2 is None or es2.shape[0] == 0:
+        return None
 
     # es2=events_stream[(events_stream.event_name.isin(['Sleep']))&(events_stream.duration<=15)] #sleep
-
-    es1['interval_start'] = es1['start_time'] + timedelta(hours=0)
-    es1['interval_end'] = es1['start_time'] + \
-        timedelta(hours=time_interval)
+    if time_interval_begin and time_interval_end:
+        es1['interval_start'] = es1['start_time'] + \
+            timedelta(seconds=time_interval_begin)
+        es1['interval_end'] = es1['start_time'] + \
+            timedelta(seconds=time_interval_end)
+    else:
+        es1['interval_start'] = es1['start_time']
+        es1['interval_end'] = es1['start_time']
 
     try:
         es1['parameter2'] = es1['parameter2'].apply(lambda x: json.dumps(x))
@@ -89,7 +96,7 @@ def e2e_scatterplot(time_interval, antecedent, antecedent_parameter, consequent,
     es2 = 'consequent'
 
     qry = f"""
-        select  
+        select
             {es1}.user_ID,
             {es1}.event_name antecedent_name,
             {es1}.start_time antecedent_start_time,
@@ -107,18 +114,18 @@ def e2e_scatterplot(time_interval, antecedent, antecedent_parameter, consequent,
             {es1}.user_id={es2}.user_id
             )
             and
-            
+
             (
             ({es2}.start_time between {es1}.interval_start and {es1}.interval_end)
-            
-            or 
-            
+
+            or
+
             ({es2}.end_time between {es1}.interval_start and {es1}.interval_end)
             )
             )
-    
-    
-            
+
+
+
         """
 
     sleep_event_matched_data = pd.read_sql_query(qry, conn)
@@ -149,9 +156,11 @@ def e2e_scatterplot(time_interval, antecedent, antecedent_parameter, consequent,
 
     print("matched data")
     print(sleep_event_matched_data)
+    if sleep_event_matched_data is None or sleep_event_matched_data.shape[0] == 0:
+        return None
 
     pivot_sleep = sleep_event_matched_data.pivot_table(index=['user_id', 'consequent_metric'], columns=[
-                                                       'antecedent_name'], values=['antecedent_metric'], aggfunc=np.sum).fillna(0).reset_index()
+        'antecedent_name'], values=['antecedent_metric'], aggfunc=np.sum).fillna(0).reset_index()
 
     # COlumn name modification
 
@@ -205,4 +214,5 @@ def e2e_scatterplot(time_interval, antecedent, antecedent_parameter, consequent,
     scatterplot_data['viewed'] = False
 
     # this data can be added to the analysis results table
+
     return scatterplot_data

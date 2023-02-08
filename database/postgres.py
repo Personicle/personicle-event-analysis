@@ -6,7 +6,6 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy_utils import register_composites
-# from configparser import ConfigParser
 
 # config_object = ConfigParser()
 # config_object.read("config.ini")
