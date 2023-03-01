@@ -7,7 +7,7 @@ from sqlalchemy import select, inspect
 
 from database.postgres import loadSession, engine, generate_table_class
 from utils.analysis_request_schema import ANALYSIS_TABLE_SCHEMA
-
+import logging
 # session = loadSession()
 
 ANALYSIS_TABLE_COLUMNS = ["user_id", "anchor", "aggregate_function", "query_interval",
@@ -28,9 +28,22 @@ def get_analysis_requests():
     # results = session.execute(query)
     results = []
 
-    for i in session.query(model_class).all():
+    select_query = select(model_class)
+    result = session.execute(select_query).scalars().all()
+
+    # analysis_query = "select * from {}".format(
+    #     os.environ.get("ANALYSIS_TABLENAME"))
+    # result = sqlio.read_sql(analysis_query, engine)
+    print(result)
+
+    # for i in model_class.query.all():
+    for i in result:  # .to_dict('records'):
         record = object_as_dict(i)
+        # record = i
+        print("sending record: {}".format(record))
         if all(j in record.keys() for j in ANALYSIS_TABLE_COLUMNS):
+            # record['unique_analysis_id'] = str(record['unique_analysis_id'])
+            logging.info(record)
             results.append(record)
 
     return results

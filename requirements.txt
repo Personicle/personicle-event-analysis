@@ -3,7 +3,8 @@
 # Manually managing azure-functions-worker may cause unexpected issues
 
 azure-functions
-flask-sqlalchemy
+# flask-sqlalchemy
+sqlalchemy<2.0
 sqlalchemy-utils
 pandas
 psycopg2-binary
