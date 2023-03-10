@@ -9,6 +9,7 @@ from database.postgres import engine
 from utils.schema_info import get_datastream_schema
 from database.write_analysis_to_db import write_analysis_results
 from analysis_queries.event_to_event_query import e2e_scatterplot
+from analysis_queries.event_to_datastream_query import e2d_scatterplot, run_e2d_analysis
 
 """
 Function for processing the analysis requests;
@@ -107,11 +108,42 @@ def main(msg: func.QueueMessage) -> None:
     matching_interval_end = None if analysis_request['query_interval'][1] is None else analysis_request['query_interval'][1] * \
         INTERVAL_MULTIPLIER[analysis_request['query_interval'][2]]
 
+    # Event to Event Matching
     if analysis_request['antecedent_type'] == "EVENT" and analysis_request['consequent_type'] == "EVENT":
         logging.info("run e2e query")
         df = e2e_scatterplot(matching_interval_begin, matching_interval_end, analysis_request['antecedent_name'], analysis_request['antecedent_parameter'], analysis_request['consequent_name'],
                              analysis_request['consequent_parameter'], analysis_request['user_id'], anchor=analysis_request['anchor'], aggregation_function=analysis_request['aggregate_function'])
         # print(df['correlation_result'].iloc[0])
+        if df is None or df.shape[0] == 0:
+            logging.info("No results found for query id {}".format(
+                analysis_request['unique_analysis_id']))
+        else:
+            write_analysis_results(analysis_request['user_id'],
+                                   df['correlation_result'].iloc[0], analysis_request['unique_analysis_id'])
+    # E2D matching
+    elif analysis_request['antecedent_type'] == "EVENT" and analysis_request['consequent_type'] == "DATASTREAM":
+        logging.info("Running E2D query")
+        df = run_e2d_analysis(matching_interval_begin, matching_interval_end, analysis_request['antecedent_name'],
+                              analysis_request['consequent_name'], analysis_request['consequent_table'],
+                              analysis_request['consequent_name'], start_analysis, end_analysis, analysis_request['user_id'])
+        # analysis_result = None
+        # cur_window_begin = start_analysis
+        # cur_window_end = cur_window_begin + timedelta(days=7)
+        # while True:
+        #     # In the loop, iterate over data streams in 1 week chunks and match each chunk with events
+        #     # the matched results need to be accumulated and added to the database
+        #     result = e2d_scatterplot(matching_interval_begin, matching_interval_end, analysis_request['antecedent_name'],
+        #                              analysis_request['consequent_name'], analysis_request['consequent_table'],
+        #                              analysis_request['consequent_name'], start_analysis, end_analysis, analysis_request['user_id'])
+        #     if analysis_result:
+        #         analysis_result['data'].extend(
+        #             result['correlation_result'].iloc[0]['data'])
+        #     else:
+        #         analysis_result = result['correlation_result'].iloc[0]
+        #     cur_window_begin = cur_window_end + timedelta(days=1)
+        #     cur_window_end = cur_window_begin + timedelta(days=7)
+        #     if cur_window_begin > end_analysis:
+        #         break
         if df is None or df.shape[0] == 0:
             logging.info("No results found for query id {}".format(
                 analysis_request['unique_analysis_id']))

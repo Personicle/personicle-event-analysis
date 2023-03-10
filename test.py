@@ -1,19 +1,23 @@
 from utils.config import *
 from utils.analysis_requests import get_analysis_requests
 from database.write_analysis_to_db import write_analysis_results
+from datetime import datetime
 
 from analysis_queries.event_to_event_query import e2e_scatterplot
+from analysis_queries.event_to_datastream_query import e2d_scatterplot, run_e2d_analysis
 if __name__ == "__main__":
-
     # results = get_analysis_requests()
     # print(results[0])
-    df = e2e_scatterplot(0, 24*60*60, "Strength training", "duration", "Sleep",
-                         "duration", "00u50rvywd8mGuJw75d7", anchor="CONSEQUENT", aggregation_function="MEAN")
-    print(df)
+    # df = e2e_scatterplot(0, 24*60*60, "Strength training", "duration", "Sleep",
+    #                      "duration", "00u50rvywd8mGuJw75d7", anchor="CONSEQUENT", aggregation_function="MEAN")
+    df = run_e2d_analysis(0, 24*60*60, "Biking", "Heartrate",
+                          "heart_rate", "Heartrate", datetime.strptime("2022-06-01", "%Y-%m-%d"), datetime.strptime("2022-12-01", "%Y-%m-%d"), "00u50rvywd8mGuJw75d7", anchor="CONSEQUENT", aggregation_function="MEAN")
+    # print(df)
     if df is not None and df.shape[0] > 0:
+        # pass
         print(df['correlation_result'].iloc[0])
         write_analysis_results("00u50rvywd8mGuJw75d7",
-                               df['correlation_result'].iloc[0], "805a4bfb-300d-4e57-bd6f-2243fd1de971")
+                               df['correlation_result'].iloc[0], "2be83768-fdf2-4cef-860e-b0c56f845216")
     else:
         print("Empty result")
 
