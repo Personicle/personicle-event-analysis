@@ -35,10 +35,12 @@ def datastream(tblname, user_id, start_time=None, end_time=None):
 
     if 'timestamp' in datastream.columns:
         complete_query = "select * from {} where individual_id = '{}' ".format(tblname, user_id) + \
-            ('' if start_time is None else " and timestamp between '{}' and '{}'".format(start_time.strftime("%Y-%m-%d %H:%M:%S"), end_time.strftime("%Y-%m-%d %H:%M:%S")))
+            ('' if start_time is None else " and timestamp between '{}' and '{}'".format(
+                start_time.strftime("%Y-%m-%d %H:%M:%S"), end_time.strftime("%Y-%m-%d %H:%M:%S")))
     elif 'start_time' in datastream.columns:
         complete_query = "select * from {} where individual_id = '{}' ".format(tblname, user_id) + \
-            ('' if start_time is None else " and start_time between '{}' and '{}'".format(start_time.strftime("%Y-%m-%d %H:%M:%S"), end_time.strftime("%Y-%m-%d %H:%M:%S")))
+            ('' if start_time is None else " and start_time between '{}' and '{}'".format(
+                start_time.strftime("%Y-%m-%d %H:%M:%S"), end_time.strftime("%Y-%m-%d %H:%M:%S")))
     else:
         return None
     print("Datastream query :")
@@ -130,7 +132,7 @@ def events_overlap(eventstream):
         if totalcaloriesburned != 0:
             dct['totalcaloriesburned'] = totalcaloriesburned
 
-        dct['duration'] = np.int(total_duration*60000)
+        dct['duration'] = total_duration*60000
 
         return dct
 
