@@ -51,7 +51,7 @@ def run_e2d_analysis(time_interval_begin, time_interval_end, antecedent_event, c
         else:
             analysis_result = result['correlation_result'].iloc[0]
         cur_window_begin = cur_window_end + timedelta(days=1)
-        cur_window_end = cur_window_begin + timedelta(days=7)
+        cur_window_end = cur_window_begin + timedelta(days=chunk_days)
         if cur_window_begin > end_analysis:
             result['correlation_result'].iloc[0] = analysis_result
             break
