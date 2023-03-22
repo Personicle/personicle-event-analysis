@@ -10,6 +10,7 @@ from utils.schema_info import get_datastream_schema
 from database.write_analysis_to_db import write_analysis_results
 from analysis_queries.event_to_event_query import e2e_scatterplot
 from analysis_queries.event_to_datastream_query import e2d_scatterplot, run_e2d_analysis
+from analysis_queries.datastream_to_event_query import run_d2e_analysis
 
 """
 Function for processing the analysis requests;
@@ -94,7 +95,8 @@ def main(msg: func.QueueMessage) -> None:
 
     # find interval for running the query
     if antecedent_interval['first_time'].iloc[0] is None or consequent_interval['first_time'].iloc[0] is None:
-        logging.info("No data found. Exiting.")
+        logging.info("No data found for analysis {}. Exiting.".format(
+            analysis_request['unique_analysis_id']))
         return
     start_analysis = min(
         antecedent_interval['first_time'].iloc[0], consequent_interval['first_time'].iloc[0])
@@ -110,22 +112,34 @@ def main(msg: func.QueueMessage) -> None:
 
     # Event to Event Matching
     if analysis_request['antecedent_type'] == "EVENT" and analysis_request['consequent_type'] == "EVENT":
-        logging.info("run e2e query")
+        logging.info("run E2E query")
         df = e2e_scatterplot(matching_interval_begin, matching_interval_end, analysis_request['antecedent_name'], analysis_request['antecedent_parameter'], analysis_request['consequent_name'],
                              analysis_request['consequent_parameter'], analysis_request['user_id'], anchor=analysis_request['anchor'], aggregation_function=analysis_request['aggregate_function'])
         # print(df['correlation_result'].iloc[0])
-        if df is None or df.shape[0] == 0:
-            logging.info("No results found for query id {}".format(
-                analysis_request['unique_analysis_id']))
-        else:
-            write_analysis_results(analysis_request['user_id'],
-                                   df['correlation_result'].iloc[0], analysis_request['unique_analysis_id'])
+        # if df is None or df.shape[0] == 0:
+        #     logging.info("No results found for query id {}".format(
+        #         analysis_request['unique_analysis_id']))
+        # else:
+        #     write_analysis_results(analysis_request['user_id'],
+        #                            df['correlation_result'].iloc[0], analysis_request['unique_analysis_id'])
     # E2D matching
     elif analysis_request['antecedent_type'] == "EVENT" and analysis_request['consequent_type'] == "DATASTREAM":
         logging.info("Running E2D query")
         df = run_e2d_analysis(matching_interval_begin, matching_interval_end, analysis_request['antecedent_name'],
                               analysis_request['consequent_name'], analysis_request['consequent_table'],
                               analysis_request['consequent_name'], start_analysis, end_analysis, analysis_request['user_id'])
+
+        # if df is None or df.shape[0] == 0:
+        #     logging.info("No results found for query id {}".format(
+        #         analysis_request['unique_analysis_id']))
+        # else:
+        #     write_analysis_results(analysis_request['user_id'],
+        #                            df['correlation_result'].iloc[0], analysis_request['unique_analysis_id'])
+    elif analysis_request['antecedent_type'] == "DATASTREAM" and analysis_request['consequent_type'] == "EVENT":
+        logging.info("Running D2E query")
+        df = run_d2e_analysis(matching_interval_begin, matching_interval_end, analysis_request['consequent_name'], analysis_request['antecedent_name'],
+                              analysis_request['antecedent_table'], analysis_request['consequent_name'], start_analysis, end_analysis, analysis_request['user_id'], anchor=analysis_request['anchor'], aggregation_function=analysis_request['aggregate_function'])
+        print(df['correlation_result'].iloc[0])
         # analysis_result = None
         # cur_window_begin = start_analysis
         # cur_window_end = cur_window_begin + timedelta(days=7)
@@ -144,13 +158,17 @@ def main(msg: func.QueueMessage) -> None:
         #     cur_window_end = cur_window_begin + timedelta(days=7)
         #     if cur_window_begin > end_analysis:
         #         break
-        if df is None or df.shape[0] == 0:
-            logging.info("No results found for query id {}".format(
-                analysis_request['unique_analysis_id']))
-        else:
-            write_analysis_results(analysis_request['user_id'],
-                                   df['correlation_result'].iloc[0], analysis_request['unique_analysis_id'])
+
     else:
+        df = None
         while True:
             break
+
+    # WRITE RESULTS TO DB
+    if df is None or df.shape[0] == 0:
+        logging.info("No results found for query id {}".format(
+            analysis_request['unique_analysis_id']))
+    else:
+        write_analysis_results(analysis_request['user_id'],
+                               df['correlation_result'].iloc[0], analysis_request['unique_analysis_id'])
     return

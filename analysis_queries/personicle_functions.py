@@ -46,6 +46,7 @@ def datastream(tblname, user_id, start_time=None, end_time=None):
     print("Datastream query :")
     print(complete_query)
     datastream = sqlio.read_sql_query(complete_query, engine)
+
     return datastream
 
 
@@ -268,3 +269,42 @@ def insights_generate(insight_activity, pivot_sleep, ci):
                     pass
 
             return ds
+
+
+def datastream_aggregate(datastream, aggregation_window="DAILY", agg_func="SUM"):
+    if aggregation_window == "DAILY":
+        datastream['aggregation_window_start'] = datastream['end_time'].apply(
+            lambda x: datetime.strptime(x.strftime("%Y-%m-%d 00:00:00"), "%Y-%m-%d %H:%M:%S"))
+        datastream['aggregation_window_end'] = datastream['aggregation_window_start'] + \
+            timedelta(days=1)
+
+    elif aggregation_window == "HOURLY":
+        datastream['aggregation_window_start'] = datastream['end_time'].apply(
+            lambda x: datetime.strptime(x.strftime("%Y-%m-%d %H:00:00"), "%Y-%m-%d %H:%M:%S"))
+        datastream['aggregation_window_end'] = datastream['aggregation_window_start'] + \
+            timedelta(hours=1)
+
+    elif aggregation_window == "WEEKLY":
+        datastream['date'] = datastream['end_time'].apply(lambda x: x.date())
+        datastream['aggregation_window_start'] = datastream['date'] - \
+            datastream['date'].apply(lambda x: timedelta(days=x.weekday()))
+        datastream['aggregation_window_end'] = datastream['aggregation_window_start'] + \
+            timedelta(weeks=1)
+
+    else:
+        return None
+
+    if agg_func == "SUM":
+        datastream = datastream.groupby(
+            ['user_id', 'aggregation_window_start', 'aggregation_window_end', 'unit'], as_index=False).agg({"value": "sum"})
+    elif agg_func == "MEAN":
+        datastream = datastream.groupby(
+            ['user_id', 'aggregation_window_start', 'aggregation_window_end', 'unit'], as_index=False).agg({"value": "mean"})
+    else:
+        return None
+
+    datastream = datastream.rename(columns={
+        'aggregation_window_start': 'start_time', 'aggregation_window_end': 'end_time'})
+    # print(datastream)
+
+    return datastream
