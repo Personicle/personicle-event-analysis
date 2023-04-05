@@ -140,24 +140,6 @@ def main(msg: func.QueueMessage) -> None:
         df = run_d2e_analysis(matching_interval_begin, matching_interval_end, analysis_request['consequent_name'], analysis_request['antecedent_name'],
                               analysis_request['antecedent_table'], analysis_request['consequent_name'], start_analysis, end_analysis, analysis_request['user_id'], anchor=analysis_request['anchor'], aggregation_function=analysis_request['aggregate_function'])
         print(df['correlation_result'].iloc[0])
-        # analysis_result = None
-        # cur_window_begin = start_analysis
-        # cur_window_end = cur_window_begin + timedelta(days=7)
-        # while True:
-        #     # In the loop, iterate over data streams in 1 week chunks and match each chunk with events
-        #     # the matched results need to be accumulated and added to the database
-        #     result = e2d_scatterplot(matching_interval_begin, matching_interval_end, analysis_request['antecedent_name'],
-        #                              analysis_request['consequent_name'], analysis_request['consequent_table'],
-        #                              analysis_request['consequent_name'], start_analysis, end_analysis, analysis_request['user_id'])
-        #     if analysis_result:
-        #         analysis_result['data'].extend(
-        #             result['correlation_result'].iloc[0]['data'])
-        #     else:
-        #         analysis_result = result['correlation_result'].iloc[0]
-        #     cur_window_begin = cur_window_end + timedelta(days=1)
-        #     cur_window_end = cur_window_begin + timedelta(days=7)
-        #     if cur_window_begin > end_analysis:
-        #         break
 
     else:
         df = None
