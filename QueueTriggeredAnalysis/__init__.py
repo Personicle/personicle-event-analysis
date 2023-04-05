@@ -11,6 +11,7 @@ from database.write_analysis_to_db import write_analysis_results
 from analysis_queries.event_to_event_query import e2e_scatterplot
 from analysis_queries.event_to_datastream_query import e2d_scatterplot, run_e2d_analysis
 from analysis_queries.datastream_to_event_query import run_d2e_analysis
+from analysis_queries.datastream_to_datastream_query import run_d2d_analysis
 
 """
 Function for processing the analysis requests;
@@ -142,9 +143,12 @@ def main(msg: func.QueueMessage) -> None:
         print(df['correlation_result'].iloc[0])
 
     else:
-        df = None
-        while True:
-            break
+        logging.info("Running D2D query")
+        df = run_d2d_analysis(time_interval_begin=matching_interval_begin, time_interval_end=matching_interval_end, consequent_name=analysis_request['consequent_name'],
+                              consequent_datastream_tablename=analysis_request['consequent_table'], antecedent_name=analysis_request[
+                                  'antecedent_name'], antecedent_datastream_tablename=analysis_request['antecedent_table'],
+                              effect_activity=analysis_request['consequent_name'], start_analysis=start_analysis, end_analysis=end_analysis, user_id=analysis_request['user_id'], anchor=analysis_request['anchor'], aggregation_function=analysis_request['aggregate_function'])
+        print(df['correlation_result'].iloc[0])
 
     # WRITE RESULTS TO DB
     if df is None or df.shape[0] == 0:
